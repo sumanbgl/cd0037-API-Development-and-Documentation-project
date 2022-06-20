@@ -41,11 +41,6 @@ def create_app(test_config=None):
     @app.route("/categories", methods=['GET'])
     @cross_origin()
     def get_all_categories():
-        # rows = Category.query.all()
-        # fmt_categories = [category.format() for category in rows]
-        # categories_map = {}
-        # for category in fmt_categories:
-        #     categories_map[category['id']] = category['type']
         categories_json = {"categories": _get_categories()}
         return jsonify(categories_json), 200
 
@@ -69,13 +64,16 @@ def create_app(test_config=None):
         start = (page - 1) * QUESTIONS_PER_PAGE
         end = start + QUESTIONS_PER_PAGE
 
-        questions = Question.query.all().order_by(Question.id)
+        questions = Question.query.order_by(Question.id).all()
         formatted_ques = [question.format() for question in questions][start:end]
+
+        if len(formatted_ques) == 0:
+            abort(404)
 
         # find category string of first question in the list
         cur_cat = _get_cur_category_string(formatted_ques[0]['category'])
 
-        return jsonify({"questions": formatted_ques, "totalQuestions": len(formatted_ques),
+        return jsonify({"questions": formatted_ques, "totalQuestions": len(questions),
                         "categories": _get_categories(),
                         "currentCategory": cur_cat}), 200
 
@@ -106,6 +104,7 @@ def create_app(test_config=None):
     the form will clear and the question will appear at the end of the last page
     of the questions list in the "List" tab.
     """
+
     @app.route('/questions', methods=['POST'])
     @cross_origin()
     def create_question():
@@ -132,8 +131,7 @@ def create_app(test_config=None):
             return False
         return True
 
-    """
-    @TODO:
+    """   
     A POST endpoint to get questions based on a search term.
     It should return any questions for whom the search term
     is a substring of the question.
@@ -142,6 +140,7 @@ def create_app(test_config=None):
     only question that include that string within their question.
     Try using the word "title" to start.
     """
+
     @app.route('/searchQuestions', methods=['POST'])
     @cross_origin()
     def search_question_by_search_term():
@@ -155,7 +154,7 @@ def create_app(test_config=None):
         if search_term is None:
             abort(400)
 
-        questions = Question.query.filter(Question.question.ilike('%'+search_term+'%')).order_by(Question.id).all()
+        questions = Question.query.filter(Question.question.ilike('%' + search_term + '%')).order_by(Question.id).all()
         formatted_questions = [question.format() for question in questions]
         cur_cat_string = ""
         if len(formatted_questions) > 0:
@@ -164,15 +163,16 @@ def create_app(test_config=None):
         return jsonify({'questions': formatted_questions, 'totalQuestions': len(questions),
                         'currentCategory': cur_cat_string}), 200
 
-    """
-    @TODO:
+    """   
     A GET endpoint to get questions based on category.
 
     TEST: In the "List" tab / main screen, clicking on one of the
     categories in the left column will cause only questions of that
     category to be shown.
     """
+
     @app.route("/categories/<cat_id>/questions", methods=['GET'])
+    @cross_origin()
     def get_questions_by_cat_id(cat_id):
         questions = Question.query.filter(Question.category == cat_id).order_by(Question.id).all()
 
@@ -187,9 +187,8 @@ def create_app(test_config=None):
         return jsonify({"questions": formatted_questions, "totalQuestions": len(questions),
                         "currentCategory": cur_cat_string}), 200
 
-    """
-    @TODO:
-    Create a POST endpoint to get questions to play the quiz.
+    """    
+    A POST endpoint to get questions to play the quiz.
     This endpoint should take category and previous question parameters
     and return a random questions within the given category,
     if provided, and that is not one of the previous questions.
@@ -199,8 +198,29 @@ def create_app(test_config=None):
     and shown whether they were correct or not.
     """
 
+    @app.route("/quizzes", methods=['POST'])
+    @cross_origin()
+    def play_quizzes():
+        body = request.get_json()
+
+        prev_questions = body.get('previous_questions', None)
+        category = body.get('quiz_category', None)
+
+        if category is None:
+            abort(400)
+
+        category_id = category['id']
+
+        cur_question = Question.query.filter(Question.category == category_id) \
+            .filter(~Question.id.in_(prev_questions)).first()
+
+        if cur_question:
+            return jsonify({"question": cur_question.format()}), 200
+        else:
+            return jsonify({"question": {}}), 200
+
     """    
-    Create error handlers for all expected errors
+    Error handlers for all expected errors
     including 404 and 422.
     """
 
