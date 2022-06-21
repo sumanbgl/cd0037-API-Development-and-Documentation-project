@@ -48,6 +48,17 @@ flask run --reload
 
 The `--reload` flag will detect file changes and restart the server automatically.
 
+### Create a .env file
+
+Create a .env file under backend folder with the below entry
+
+`DB_CONN_PARAM=<dbusername>:<dbpassword>@<dbhostname>:<dbport>`
+
+- `<dbusername>` : Replace this with database user name.
+- `<dbpassword>` : Replace this with database password for above user name.
+- `<dbhostname>` : Replace this with the hostname where database is running.
+- `<dbport>` : Replace this with the port on which database server is running.
+
 ## To Do Tasks
 
 These are the files you'd want to edit in the backend:

@@ -211,13 +211,17 @@ def create_app(test_config=None):
 
         category_id = category['id']
 
-        cur_question = Question.query.filter(Question.category == category_id) \
-            .filter(~Question.id.in_(prev_questions)).first()
+        if category_id == 0:
+            # 0 indicates ALL. Hence, don't filter by category_id.
+            cur_question = Question.query.filter(~Question.id.in_(prev_questions)).first()
+        else:
+            cur_question = Question.query.filter(Question.category == category_id) \
+                .filter(~Question.id.in_(prev_questions)).first()
 
         if cur_question:
             return jsonify({"question": cur_question.format()}), 200
         else:
-            return jsonify({"question": {}}), 200
+            return jsonify({"question": None}), 200
 
     """    
     Error handlers for all expected errors
